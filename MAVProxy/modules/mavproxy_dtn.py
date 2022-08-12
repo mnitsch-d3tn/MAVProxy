@@ -25,7 +25,7 @@ class dtn(mp_module.MPModule):
         """Initialise module"""
         super(dtn, self).__init__(mpstate, "dtn", "")
         self._stop = threading.Event()
-        self._aap_recv_thread = threading.Thread(target=self._aap_recv,)
+        self._aap_recv_thread = threading.Thread(target=self._aap_recv, daemon=True)
 
         #self.dtn_settings = mp_settings.MPSettings(
         #    [ ('ip:port', str, False),
@@ -48,9 +48,9 @@ class dtn(mp_module.MPModule):
             print(self.usage())
 
 
-    def unload(self):
-        self._stop.set()
-        super().unload()
+    #def unload(self):
+    #    self._stop.set()
+    #    super().unload()
 
     def _aap_recv(self):
         with AAPTCPClient(address=('10.33.0.10', 4242)) as aap_client:
