@@ -10,6 +10,7 @@ import sys
 from pymavlink import mavutil
 import errno
 import time
+import threading
 
 from MAVProxy.modules.lib import mp_module
 from MAVProxy.modules.lib import mp_util
@@ -23,6 +24,8 @@ class dtn(mp_module.MPModule):
     def __init__(self, mpstate):
         """Initialise module"""
         super(dtn, self).__init__(mpstate, "dtn", "")
+        self._stop = threading.Event()
+        self._aap_recv_thread = threading.Thread(target=self._aap_recv,)
 
         #self.dtn_settings = mp_settings.MPSettings(
         #    [ ('ip:port', str, False),
@@ -37,15 +40,17 @@ class dtn(mp_module.MPModule):
         '''control behaviour of the module'''
         if len(args) == 0:
             print(self.usage())
-        elif args[0] == "run":
-            self.run()
+        elif args[0] == "start":
+            self._aap_recv_thread.start()
+        elif args[0] == "stop":
+            self._stop.set()
         else:
             print(self.usage())
 
-    def run(self):
+    def _aap_recv(self):
         with AAPTCPClient(address=('10.33.0.10', 4242)) as aap_client:
             aap_client.register('mavproxy')
-            while True:
+            while not self._stop.isSet():
                 msg = aap_client.receive()
                 print(msg)
                 if msg and msg.msg_type == AAPMessageType.RECVBUNDLE:
