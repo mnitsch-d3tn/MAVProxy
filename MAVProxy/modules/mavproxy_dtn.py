@@ -47,6 +47,11 @@ class dtn(mp_module.MPModule):
         else:
             print(self.usage())
 
+
+    def unload(self):
+        self._stop.set()
+        super().unload()
+
     def _aap_recv(self):
         with AAPTCPClient(address=('10.33.0.10', 4242)) as aap_client:
             aap_client.register('mavproxy')
