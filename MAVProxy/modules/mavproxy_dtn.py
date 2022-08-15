@@ -25,16 +25,15 @@ class dtn(mp_module.MPModule):
         """Initialise module"""
         super(dtn, self).__init__(mpstate, "dtn", "")
         self._stop = threading.Event()
-        self._aap_recv_thread = threading.Thread(target=self._aap_recv, daemon=True)
 
         #self.dtn_settings = mp_settings.MPSettings(
         #    [ ('ip:port', str, False),
         #  ]) 
-        self.add_command('dtn', self.cmd_dtn, "dtn module", ['run',])
+        self.add_command('dtn', self.cmd_dtn, "dtn module", ['start', 'stop'])
 
     def usage(self):
         '''show help on command line options'''
-        return "Usage: dtn run"
+        return "Usage: dtn start"
 
     def cmd_dtn(self, args):
         '''control behaviour of the module'''
@@ -42,31 +41,29 @@ class dtn(mp_module.MPModule):
             print(self.usage())
         elif args[0] == "start":
             self._aap_recv_thread.start()
+            #self._aap_recv_thread = threading.Thread(target=self._aap_recv, daemon=True)
         elif args[0] == "stop":
             self._stop.set()
         else:
             print(self.usage())
 
-
-    #def unload(self):
-    #    self._stop.set()
-    #    super().unload()
-
     def _aap_recv(self):
-        with AAPTCPClient(address=('10.33.0.10', 4242)) as aap_client:
+        with AAPTCPClient(address=('127.0.0.1', 4242)) as aap_client:
             aap_client.register('mavproxy')
             while not self._stop.isSet():
                 msg = aap_client.receive()
                 print(msg)
                 if msg and msg.msg_type == AAPMessageType.RECVBUNDLE:
-                    payload = msg.payload.decode()
+                    cmd, *args = msg.payload.decode().split()
                     print(f"Received Command: {payload}")
-                    if payload == 'arm':
+                    if cmd == 'arm':
                         self.master.arducopter_arm()
                         self.master.motors_armed_wait()
-                    if payload == 'disarm':
+                    elif cmd == 'disarm':
                         self.master.arducopter_disarm()
                         self.master.motors_disarmed_wait()
+                    elif cmd == 'position':
+                        print(args)
                 else:
                     print("Received message is not a bundle.")
 
